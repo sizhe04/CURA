@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (not uploaded per MIMIC-IV DUA)
+data/
+
+# Results and checkpoints (too large for git)
+results/
+outputs_cv/
+
+# Weights & Biases
+wandb/
+
+# Environment
+.env
+*.env
