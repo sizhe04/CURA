@@ -1,45 +1,26 @@
-# CURA: Clinical Uncertainty & Risk Alignment
+# CURA: Clinical Uncertainty Risk Alignment for Language Model-Based Risk Prediction
 
 <p align="center">
-  <a href="assets/Pipeline_v4.pdf">
-    <img src="assets/Pipeline_v4.png" alt="CURA pipeline" width="980">
-  </a>
+  <img src="assets/Pipeline_v4.png" alt="CURA pipeline" width="980">
 </p>
 
-<p align="center">
-  <a href="assets/Pipeline_v4.pdf">Pipeline Figure (PDF)</a> |
-  <a href="https://physionet.org/content/mimiciv/">MIMIC-IV</a> |
-  <a href="https://physionet.org/content/mimic-iv-note/">MIMIC-IV-Note</a> |
-  <a href="#citation">Citation</a>
-</p>
-
-Official implementation of **CURA: Clinical Uncertainty & Risk Alignment for Language Model Based Risk Prediction**.
-
-As illustrated in the pipeline above, CURA is a two-stage framework for reliable note-based clinical risk prediction. In **Stage 1**, a clinical language model is fine-tuned on downstream prediction tasks and used to extract frozen patient embeddings. In **Stage 2**, a multi-head classifier is trained on those embeddings with a joint objective that combines predictive accuracy, individual uncertainty calibration, and cohort-aware risk alignment. The goal is not only strong predictive performance, but also uncertainty estimates that better reflect patient-level error likelihood and local cohort ambiguity.
-
-## Highlights
-
-- Two-stage training pipeline aligned with the paper: clinical LM fine-tuning followed by uncertainty fine-tuning.
-- Support for multiple clinical backbones, including `BioGPT`, `BioClinicalBERT`, and `ClinicalBERT`.
-- Cohort-aware uncertainty modeling through pre-computed neighborhood statistics on Stage 1 embeddings.
-- End-to-end scripts for training, embedding export, uncertainty computation, and selective prediction evaluation.
+Overview of the CURA pipeline. The clinical language model is fine-tuned on MIMIC-IV notes to produce task-adapted embeddings for a multi-head classifier, trained with a base loss L_base plus a bi-level uncertainty calibration: the individual term L_ind calibrates patient-level uncertainty, and the cohort-aware term L_coh aligns predictions with neighborhood risks in the embedding space, emphasizing ambiguous cohorts.
 
 ## Code Structure
 
-- `run_stage1.sh`: launches Stage 1 fine-tuning and embedding extraction.
-- `run_stage1_repr_uncert.sh`: computes neighborhood statistics on Stage 1 embeddings for cohort-aware Stage 2 training.
-- `run_stage2.sh`: launches Stage 2 multi-head uncertainty fine-tuning on frozen embeddings.
-- `run_stage2_threshold_eval.sh`: runs selective prediction / threshold-retention evaluation.
-- `stage1_cv_train.py`: main 5-fold cross-validation training script for Stage 1.
-- `stage1_compute_repr_uncert.py`: computes `q(x)` and neighborhood uncertainty on stored embeddings.
-- `stage2_train_from_embeddings.py`: main 5-fold cross-validation training script for Stage 2.
-- `stage2_threshold_eval.py`: computes selective prediction metrics across retention thresholds.
-- `modeling_singlehead.py`: Stage 1 classifier heads and loss logic.
-- `modeling_multihead_embedding.py`: Stage 2 multi-head classifier on frozen embeddings.
-- `data.py` and `data_embeddings.py`: dataset loaders for raw note inputs and embedding inputs.
-- `params/`: shell parameter templates for Stage 1, Stage 2, representation uncertainty, and threshold evaluation.
-- `utilities/`: metrics, training arguments, embedding I/O, W&B helpers, and selective evaluation utilities.
-- `compute_positive_rate.py` and `merge_AUROC_AUPRC_results.py`: post-processing helpers for analysis.
+This repository implements the two-stage CURA framework as described in the paper.
+
+**Stage 1: Clinical LM Fine-Tuning**  
+The first stage fine-tunes a clinical language model on downstream prediction tasks to extract task-adapted patient embeddings.
+- `run_stage1.sh` -> `stage1_cv_train.py`: Main scripts for Stage 1 fine-tuning and extracting frozen embeddings.
+- `run_stage1_repr_uncert.sh` -> `stage1_compute_repr_uncert.py`: Computes local neighborhood statistics (q(x) and H_hat(q)) on the frozen embeddings, which are required for the cohort-aware risk alignment in Stage 2.
+
+**Stage 2: Uncertainty Fine-Tuning**  
+The second stage trains a multi-head classifier on the frozen embeddings from Stage 1 using the bi-level uncertainty objective (L_base + L_ind + L_coh).
+- `run_stage2.sh` -> `stage2_train_from_embeddings.py`: Main scripts for Stage 2 uncertainty fine-tuning.
+- `run_stage2_threshold_eval.sh` -> `stage2_threshold_eval.py`: Scripts for evaluating selective prediction and computing metrics across different retention thresholds.
+
+Configuration for each stage is managed via parameter files located in the `params/` directory.
 
 ## Environment Setup
 
@@ -61,24 +42,17 @@ pip install torch transformers scikit-learn pandas numpy wandb
 
 ## Data
 
-This project uses clinical notes from **MIMIC-IV** and **MIMIC-IV-Note**. Access must be obtained through PhysioNet.
+This project uses clinical notes from the **MIMIC-IV** and **MIMIC-IV-Note** databases. Access must be obtained through [PhysioNet](https://physionet.org/).
 
-1. Complete the required CITI training.
-2. Sign the PhysioNet data use agreement.
-3. Request access to [MIMIC-IV](https://physionet.org/content/mimiciv/).
-4. Request access to [MIMIC-IV-Note](https://physionet.org/content/mimic-iv-note/).
-5. Build a preprocessed CSV containing the note text column and task labels used by the paper.
+After obtaining access and processing the clinical notes, the input data format is a CSV file containing the text column `clean_text` and binary labels for the following 5 clinical risk prediction tasks:
 
-Expected columns include:
+- `death_in_7`: 7-day mortality
+- `death_in_30`: 30-day mortality
+- `Discharge`: early discharge
+- `Hospital`: in-hospital mortality
+- `after_ICU_more_than_3_days`: ICU stay > 1 day
 
-- `clean_text`
-- `death_in_7`
-- `death_in_30`
-- `Discharge`
-- `Hospital`
-- `after_ICU_more_than_3_days`
-
-Data files are **not** distributed in this repository.
+Data files are **not** distributed in this repository to comply with the PhysioNet data use agreement.
 
 ## How To Run
 
@@ -99,8 +73,6 @@ Then launch Stage 1:
 bash run_stage1.sh params/Stage1_Bio-ClinicalBERT_30_params.sh
 ```
 
-This stage fine-tunes the backbone, saves checkpoints, and exports frozen embeddings for each fold.
-
 ### 2. Representation Uncertainty on Stage 1 Embeddings
 
 If you plan to use cohort-aware Stage 2 training, fill in `params/Stage1_repr_uncert_params.sh` and run:
@@ -108,11 +80,6 @@ If you plan to use cohort-aware Stage 2 training, fill in `params/Stage1_repr_un
 ```bash
 bash run_stage1_repr_uncert.sh params/Stage1_repr_uncert_params.sh
 ```
-
-This step computes neighborhood statistics such as:
-
-- `q(x)`: local positive rate around each sample
-- `H_hat(q)`: local cohort ambiguity / neighborhood entropy
 
 ### 3. Stage 2: Uncertainty Fine-Tuning
 
@@ -122,8 +89,6 @@ Fill in `params/Stage2_params.sh`, then run:
 bash run_stage2.sh params/Stage2_params.sh
 ```
 
-Stage 2 trains the multi-head classifier on frozen embeddings and applies the uncertainty-aware objective described in the paper.
-
 ### 4. Selective Prediction Evaluation
 
 Fill in `params/threshold_eval_params.sh`, then run:
@@ -131,8 +96,6 @@ Fill in `params/threshold_eval_params.sh`, then run:
 ```bash
 bash run_stage2_threshold_eval.sh params/threshold_eval_params.sh
 ```
-
-This evaluates performance under different retained-cohort thresholds for selective prediction analysis.
 
 ## Output Layout
 
