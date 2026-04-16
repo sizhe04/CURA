@@ -878,8 +878,15 @@ def main():
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    for label in args.labels:
-        run_one_label(args, label)
+    if len(args.labels) != 1:
+        raise ValueError(
+            f"Stage-2 accepts exactly one label per invocation (got {args.labels}). "
+            f"EMBEDDINGS_ROOT points to a single task's Stage-1 checkpoint directory, "
+            f"so running multiple labels in one call would reuse the same embeddings and "
+            f"overwrite output files. Run Stage-2 separately for each task."
+        )
+
+    run_one_label(args, args.labels[0])
 
 
 if __name__ == "__main__":

@@ -17,8 +17,7 @@ The first stage fine-tunes a clinical language model on downstream prediction ta
 
 **Stage 2: Uncertainty Fine-Tuning**  
 The second stage trains a multi-head classifier on the frozen embeddings from Stage 1 using the bi-level uncertainty objective (L_base + L_ind + L_coh).
-- `run_stage2.sh` -> `stage2_train_from_embeddings.py`: Main scripts for Stage 2 uncertainty fine-tuning.
-- `run_stage2_threshold_eval.sh` -> `stage2_threshold_eval.py`: Scripts for evaluating selective prediction and computing metrics across different retention thresholds.
+- `run_stage2.sh` -> `stage2_train_from_embeddings.py`: Main scripts for Stage 2 uncertainty fine-tuning. Evaluation metrics (AUROC, AUPRC, ECE, etc.) are computed and saved automatically at the end of training.
 
 Configuration for each stage is managed via parameter files located in the `params/` directory.
 
@@ -60,17 +59,20 @@ All parameter files in `params/` are intentionally shipped with blank values. Fi
 
 ### 1. Stage 1: Clinical LM Fine-Tuning
 
-Choose and edit one of the Stage 1 parameter files, for example:
+Edit the Stage 1 parameter file `params/Stage1_params.sh`. The `TARGET_LABELS` field accepts one or more task labels separated by spaces; Stage 1 will run a separate fine-tuning experiment for each label in sequence and write outputs to independent directories.
 
-- `params/Stage1_Bio-ClinicalBERT_30_params.sh`
-- `params/Stage1_Bio-ClinicalBERT_7_params.sh`
-- `params/Stage1_ClinicalBERT_30_params.sh`
-- `params/Stage1_ClinicalBERT_7_params.sh`
+```bash
+# Single task
+TARGET_LABELS="death_in_30"
+
+# Multiple tasks (Stage 1 loops over each; outputs are stored per label)
+TARGET_LABELS="death_in_30 death_in_7"
+```
 
 Then launch Stage 1:
 
 ```bash
-bash run_stage1.sh params/Stage1_Bio-ClinicalBERT_30_params.sh
+bash run_stage1.sh params/Stage1_params.sh
 ```
 
 ### 2. Representation Uncertainty on Stage 1 Embeddings
@@ -89,13 +91,7 @@ Fill in `params/Stage2_params.sh`, then run:
 bash run_stage2.sh params/Stage2_params.sh
 ```
 
-### 4. Selective Prediction Evaluation
-
-Fill in `params/threshold_eval_params.sh`, then run:
-
-```bash
-bash run_stage2_threshold_eval.sh params/threshold_eval_params.sh
-```
+> **Alternative / re-run without Stage 1**: `params/Stage2_params.sh` is independent of the Stage 1 parameter files. Because Stage 1 (LM fine-tuning) is computationally expensive, Stage 2 can be re-run with different hyperparameters on already-computed Stage 1 embeddings simply by editing `EMBEDDINGS_ROOT` and the relevant Stage 2 settings in `Stage2_params.sh`, without rerunning Stage 1.
 
 ## Output Layout
 

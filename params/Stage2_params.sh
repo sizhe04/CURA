@@ -22,7 +22,8 @@ EMBEDDING_SOURCE=""
 POOLING=""
 MODEL_NAME=""
 
-# Multiple labels separated by space: e.g. "death_in_30 death_in_7"
+# Single label only. EMBEDDINGS_ROOT points to one task's Stage-1 checkpoint directory,
+# so Stage-2 must be run separately for each task (e.g. "death_in_30").
 TARGET_LABELS=""
 
 # ========= Multi-head architecture =========
