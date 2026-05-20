@@ -116,10 +116,11 @@ Stage 2 outputs are organized under the Stage 1 label directory:
 If you use this repository in your research, please cite:
 
 ```bibtex
-@article{wang2025cura,
-  title={CURA: Clinical Uncertainty \& Risk Alignment for Language Model Based Risk Prediction},
-  author={Wang, Sizhe and Huang, Jiaxin},
-  year={2025}
+@article{wang2026cura,
+  title={CURA: Clinical Uncertainty Risk Alignment for Language Model-Based Risk Prediction},
+  author={Wang, Sizhe and Xu, Ziqi and Najjuuko, Claire and Alba, Charles and Lu, Chenyang},
+  journal={arXiv preprint arXiv:2604.14651},
+  year={2026}
 }
 ```
 
